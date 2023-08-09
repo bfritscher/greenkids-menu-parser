@@ -8,11 +8,11 @@ jobs:
     deploy:
       runs-on: ubuntu-latest
       steps:
+        - uses: actions/checkout@v3
         - uses: appwrite/setup-for-actions@main
           with:
               endpoint: '${{ vars.APPWRITE_ENDPOINT }}'
               project: '${{ vars.APPWRITE_PROJECT_ID }}'
               key: '${{ secrets.APPWRITE_API_KEY }}'
-        - uses: actions/checkout@v3
         - name: Deploy functions
           run: appwrite deploy function --all --yes
