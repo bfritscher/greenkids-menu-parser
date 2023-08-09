@@ -8,7 +8,7 @@ jobs:
     deploy:
       runs-on: ubuntu-latest
       steps:
-        - uses: appwrite/setup-for-actions@v1
+        - uses: appwrite/setup-for-actions@main
           with:
               endpoint: '${{ vars.APPWRITE_ENDPOINT }}'
               project: '${{ vars.APPWRITE_PROJECT_ID }}'
