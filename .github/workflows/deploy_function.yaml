@@ -1,0 +1,17 @@
+name: Deploy functions to appwrite
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+jobs:
+    deploy:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: appwrite/setup-for-actions@v1
+          with:
+              endpoint: '${{ vars.APPWRITE_ENDPOINT }}'
+              project: '${{ vars.APPWRITE_PROJECT_ID }}'
+              key: '${{ secrets.APPWRITE_API_KEY }}'
+        - name: Deploy functions
+          run: appwrite deploy function --all --yes

@@ -1,0 +1,4 @@
+requests==2.31.0
+pypdf==3.15.0
+beautifulsoup4==4.12.2
+appwrite==2.0.2

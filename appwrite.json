@@ -1,0 +1,92 @@
+{
+    "projectName": "greenkids menus",
+    "databases": [
+        {
+            "$id": "greenkids",
+            "name": "greenkids"
+        }
+    ],
+    "collections": [
+        {
+            "$id": "menu",
+            "$permissions": [
+                "read(\"any\")",
+                "read(\"guests\")",
+                "read(\"users\")"
+            ],
+            "databaseId": "greenkids",
+            "name": "menu",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "dow",
+                    "type": "string",
+                    "status": "available",
+                    "required": true,
+                    "array": false,
+                    "size": 20,
+                    "default": null
+                },
+                {
+                    "key": "date",
+                    "type": "datetime",
+                    "status": "available",
+                    "required": true,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "status": "available",
+                    "required": false,
+                    "array": false,
+                    "size": 8000,
+                    "default": null
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "search",
+                    "type": "fulltext",
+                    "status": "available",
+                    "attributes": [
+                        "description"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                },
+                {
+                    "key": "date_unique",
+                    "type": "unique",
+                    "status": "available",
+                    "attributes": [
+                        "date"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
+        }
+    ],
+    "functions": [
+        {
+            "$id": "menu_parser",
+            "name": "Menu Parser",
+            "runtime": "python-3.10",
+            "path": "functions/menu_parser",
+            "entrypoint": "src/index.py",
+            "ignore": [
+                "__pypackages__"
+            ],
+            "execute": [],
+            "events": [],
+            "schedule": "0 23 * * 0",
+            "timeout": 300
+        }
+    ]
+}
