@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>greenkids menus</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
+    <style>
+        body {
+            text-align: center;
+            font-family: 'Open Sans', sans-serif;
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            max-width: 250px;
+            margin: 0 auto;
+            align-items: stretch;
+            font-size: 0.8em;
+        }
+        #menu {
+            margin: 2em;
+            line-height: 1.5;
+        }
+        .source {
+            font-size: 0.8em;
+            display: block;
+            color: #666;
+        }
+        button {
+            border: none;
+            background: none;
+            cursor: pointer;
+            outline: none;
+        }
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #333;
+                color: #eee;
+            }
+            .source {
+                color: #aaa;
+            }
+            button {
+                color: #eee;
+            }
+        }
+    </style>
+  </head>
+  <body>
+    <div id="menu"></div>
+    <nav>
+        <button onclick="changeDay(-1)">&lt;&lt;</button>
+        <div id="day"></div>
+        <button onclick="changeDay(1)">&gt;&gt;</button>
+    </nav>
+    <a class="source" href="https://www.greenkids.biz/nos-menus">greenkids.biz</a>
+    <script>
+      const APPWRITE_ENDPOINT = "https://appwrite.bf0.ch/v1";
+      const menuDiv = document.getElementById("menu");
+      const dayDiv = document.getElementById("day");
+      const day = 60 * 60 * 24 * 1000;
+
+      let currentDate = new Date();
+
+      function changeDay(direction) {
+        currentDate = new Date(currentDate.getTime() + day * direction);
+        fetchMenu();
+      }
+
+      function dateToString(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+
+      function fetchMenu() {
+        dayDiv.innerHTML = currentDate.toLocaleDateString('fr-CH', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        const url = `${APPWRITE_ENDPOINT}/databases/greenkids/collections/menu/documents?project=64d156eb89199d595a00&queries[]=equal("date",${dateToString(
+          currentDate
+        )})`;
+        fetch(url)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.documents.length == 0) {
+              menuDiv.innerHTML = "Pas de menu aujourd'hui";
+            } else {
+              const menu = data.documents[0];
+              const formattedText = menu.description.replace(/\n/g, "<br>");
+              menuDiv.innerHTML = formattedText;
+            }
+          });
+      }
+      fetchMenu();
+    </script>
+  </body>
+</html>
