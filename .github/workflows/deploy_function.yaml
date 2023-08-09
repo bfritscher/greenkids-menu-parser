@@ -13,5 +13,6 @@ jobs:
               endpoint: '${{ vars.APPWRITE_ENDPOINT }}'
               project: '${{ vars.APPWRITE_PROJECT_ID }}'
               key: '${{ secrets.APPWRITE_API_KEY }}'
+        - uses: actions/checkout@v3
         - name: Deploy functions
           run: appwrite deploy function --all --yes
