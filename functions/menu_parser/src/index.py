@@ -74,18 +74,18 @@ def extract_text(file_path):
 """
 
 
-def main(req, res):
+def main(context):
     client = Client()
 
     databases = Databases(client)
 
-    if not req.variables.get('APPWRITE_FUNCTION_ENDPOINT') or not req.variables.get('APPWRITE_FUNCTION_API_KEY'):
+    if not os.environ.get('APPWRITE_FUNCTION_ENDPOINT') or not os.environ.get('APPWRITE_FUNCTION_API_KEY'):
         raise Exception(
             'Environment variables are not set. Function cannot use Appwrite SDK.')
     (client
-     .set_endpoint(req.variables.get('APPWRITE_FUNCTION_ENDPOINT', None))
-     .set_project(req.variables.get('APPWRITE_FUNCTION_PROJECT_ID', None))
-     .set_key(req.variables.get('APPWRITE_FUNCTION_API_KEY', None))
+     .set_endpoint(os.environ.get('APPWRITE_FUNCTION_ENDPOINT', None))
+     .set_project(os.environ.get('APPWRITE_FUNCTION_PROJECT_ID', None))
+     .set_key(os.environ.get('APPWRITE_FUNCTION_API_KEY', None))
      )
 
     def save_menu(menu):
@@ -98,12 +98,12 @@ def main(req, res):
         menus = extract_text(path)
         for menu in menus:
             try:
-                print(save_menu(menu))
+                context.log(save_menu(menu))
                 new_found += 1
             except Exception as e:
                 pass
 
     if new_found == 0:
-        raise Exception('No new menus found')
+        context.error('No new menus found')
 
-    return res.send('')
+    return context.res.send('')

@@ -77,7 +77,7 @@
         {
             "$id": "menu_parser",
             "name": "Menu Parser",
-            "runtime": "python-3.10",
+            "runtime": "python-3.11",
             "path": "functions/menu_parser",
             "entrypoint": "src/index.py",
             "ignore": [
