@@ -80,6 +80,7 @@
             "runtime": "python-3.11",
             "path": "functions/menu_parser",
             "entrypoint": "src/index.py",
+            "commands": "pip install -r requirements.txt",
             "ignore": [
                 "__pypackages__"
             ],
@@ -88,5 +89,6 @@
             "schedule": "0 23 * * 0",
             "timeout": 300
         }
-    ]
+    ],
+    "projectId": "64d156eb89199d595a00"
 }
