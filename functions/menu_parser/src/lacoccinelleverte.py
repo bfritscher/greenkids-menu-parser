@@ -8,6 +8,7 @@ import json
 from appwrite.client import Client
 from appwrite.services.databases import Databases
 from appwrite.id import ID
+import traceback
 
 def extract_text():
     response = requests.get("https://lacoccinelleverte.net/nos-menus/")
@@ -74,9 +75,13 @@ def main(context):
             context.log(save_menu(menu))
             new_found += 1
         except Exception as e:
-            context.error(e)
+            error_message = traceback.format_exc()
+            context.error(error_message)
 
     if new_found == 0:
         context.error('No new menus found')
 
     return context.res.send('')
+
+if __name__ == "__main__":
+    print(extract_text())
