@@ -46,7 +46,7 @@ def extract_text():
     ]
 
     for i, menu in enumerate(menus):
-        menu["date"] = start_date + datetime.timedelta(days=i),
+        menu["date"] = start_date + datetime.timedelta(days=i)
 
     return menus
 
@@ -84,4 +84,7 @@ def main(context):
     return context.res.send('')
 
 if __name__ == "__main__":
-    print(extract_text())
+    menus = extract_text()
+    for menu in menus:
+        print(menu)
+        print(json.dumps(menu, default=str))
