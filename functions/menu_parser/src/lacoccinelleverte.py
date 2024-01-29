@@ -25,14 +25,16 @@ def extract_text():
 
     date_text = text.split("Lundi")[0]
 
-    date_pattern = r".*?(\d{1,2}).*?(\d{1,2}).*?(\w+).*?(\d{4})"
+    date_pattern = r".*?(\d{1,2}).*?(\w+).*?(\d{1,2}).*?(\w+).*?(\d{4})"
     match = re.search(date_pattern, text)
 
     if match:
         start_day = match.group(1)
-        end_day = match.group(2)
-        month = match.group(3)
-        year = match.group(4)
+        start_month = match.group(2)
+        end_day = match.group(3)
+        end_month = match.group(4)
+        year = match.group(5)
+        month = start_month if start_month != "au" else end_month
 
     start_date = dateparser.parse(f"{start_day} {month} {year}", languages=['fr'])
 
