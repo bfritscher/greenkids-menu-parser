@@ -1,56 +1,78 @@
 import requests
-from bs4 import BeautifulSoup
-import re
-import os
-import dateparser
-import datetime
 import json
 from appwrite.client import Client
 from appwrite.services.databases import Databases
 from appwrite.id import ID
 import traceback
+from pypdf import PdfReader
+import re
+import os
+import dateparser
+import datetime
 
-def extract_text():
-    response = requests.get("https://lacoccinelleverte.net/nos-menus/")
-    soup = BeautifulSoup(response.text, "html.parser")
-    entry_content = soup.select_one(".entry-content")
+DATA_FOLDER = 'data'
+PDF_FOLDER = os.path.join(DATA_FOLDER, 'pdf')
+os.makedirs(DATA_FOLDER, exist_ok=True)
+os.makedirs(PDF_FOLDER, exist_ok=True)
 
-    for tag_type in ['amp-fit-text', 'strong']:
-        for tag in entry_content.find_all(tag_type):
-            tag.unwrap()
+def find_link():
+    url = "https://lacoccinelleverte.net/nos-menus/"
+    response = requests.get(url)
+    response.raise_for_status()
+    pdf_links = re.findall(r'="([^"]+\.pdf)"', response.text, re.IGNORECASE)
+    return set(pdf_links).pop()
 
-    entry_content.contents.pop(0)
-    entry_content.smooth()
-    text = entry_content.get_text(separator='\n')
+def url_to_file_path(url):
+    filename = url.split("/")[-1]
+    return os.path.join(PDF_FOLDER, filename)
 
-    date_text = text.split("Lundi")[0]
+def download_link(url):
+    response = requests.get(url)
+    path = url_to_file_path(url)
+    with open(path, "wb") as f:
+        f.write(response.content)
+    return path
 
-    date_pattern = r".*?(\d{1,2}).*?(\w+).*?(\d{1,2}).*?(\w+).*?(\d{4})"
-    match = re.search(date_pattern, text)
 
-    if match:
-        start_day = match.group(1)
-        start_month = match.group(2)
-        end_day = match.group(3)
-        end_month = match.group(4)
-        year = match.group(5)
-        month = start_month if start_month != "au" else end_month
+def extract_menus(text):
+    # Days of the week and a regex pattern to find each day's menu
+    days_of_week = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
+    day_pattern = "|".join(days_of_week)
+    
+    # Regex pattern to find the day's menu content
+    menu_pattern = rf"({day_pattern}) (\d{{1,2}}) (\w+)(.*?)(?=(?:{day_pattern}) \d{{1,2}} \w+|∆ TRIANGLE|$)"
+    
+    menus = []
+    matches = re.findall(menu_pattern, text, re.DOTALL | re.IGNORECASE)
 
-    start_date = dateparser.parse(f"{start_day} {month} {year}", languages=['fr'])
+    year = datetime.datetime.now().year
 
-    # Split the text by the days of the week
-    days = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi"]
-    menus = [
-        {"dow": day, "description": text.split(day)[1].split(next_day)[0].strip()}
-        if day != "Vendredi"
-        else {"dow": "Vendredi", "description": text.split(day)[1].strip()}
-        for day, next_day in zip(days, days[1:] + [""])
-    ]
-
-    for i, menu in enumerate(menus):
-        menu["date"] = start_date + datetime.timedelta(days=i)
+    for match in matches:
+        day = match[0]
+        date = match[1]
+        month = match[2]
+        menu_content = match[3].strip().replace(" p\n", "∆\n")
+        
+        # Create a date object using the extracted date and month and assuming the current year
+        try:
+            date_obj = dateparser.parse(f"{date} {month} {year}", languages=['fr'])
+        except ValueError:
+            date_obj = None
+        
+        menus.append({
+            "dow": day.capitalize(), 
+            "date": date_obj,
+            "description": menu_content
+        })
 
     return menus
+
+def get_menus():
+    file_path = download_link(find_link())
+    reader = PdfReader(file_path)
+    page = reader.pages[0]
+    text = page.extract_text()
+    return extract_menus(text)
 
 
 def main(context):
@@ -71,7 +93,7 @@ def main(context):
         return databases.create_document('greenkids', 'menu', ID.unique(), json.dumps(menu, default=str))
 
     new_found = 0
-    menus = extract_text()
+    menus = get_menus()
     for menu in menus:
         try:
             context.log(save_menu(menu))
@@ -86,7 +108,7 @@ def main(context):
     return context.res.send('')
 
 if __name__ == "__main__":
-    menus = extract_text()
+    menus = get_menus()
     for menu in menus:
         print(menu)
         print(json.dumps(menu, default=str))
