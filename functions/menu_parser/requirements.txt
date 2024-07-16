@@ -1,5 +1,5 @@
-requests==2.31.0
-pypdf==3.15.5
-beautifulsoup4==4.12.2
-appwrite==3.0.1
+requests==2.32.3
+pypdf==4.3.0
+beautifulsoup4==4.12.3
+appwrite==5.0.3
 dateparser==1.2.0
