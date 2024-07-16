@@ -82,9 +82,7 @@
 
       function fetchMenu() {
         dayDiv.innerHTML = currentDate.toLocaleDateString('fr-CH', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
-        const url = `${APPWRITE_ENDPOINT}/databases/greenkids/collections/menu/documents?project=64d156eb89199d595a00&queries[]=equal("date",${dateToString(
-          currentDate
-        )})`;
+        const url = `${APPWRITE_ENDPOINT}/databases/greenkids/collections/menu/documents?project=64d156eb89199d595a00&queries[0]=${encodeURI(`{"method":"equal","attribute":"date","values":["${dateToString(currentDate)}"]}`)}`;
         fetch(url)
           .then((response) => response.json())
           .then((data) => {
