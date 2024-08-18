@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>greenkids menus</title>
+    <title>lacoccinelleverte menus</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style>
@@ -82,6 +82,7 @@
 
       function fetchMenu() {
         dayDiv.innerHTML = currentDate.toLocaleDateString('fr-CH', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        menuDiv.innerHTML = "Chargement...";
         const url = `${APPWRITE_ENDPOINT}/databases/greenkids/collections/menu/documents?project=64d156eb89199d595a00&queries[0]=${encodeURI(`{"method":"equal","attribute":"date","values":["${dateToString(currentDate)}"]}`)}`;
         fetch(url)
           .then((response) => response.json())
@@ -93,6 +94,8 @@
               const formattedText = menu.description.replace(/\n/g, "<br>");
               menuDiv.innerHTML = formattedText;
             }
+          }).catch((error) => {
+            menuDiv.innerHTML = "Erreur de chargement";
           });
       }
       fetchMenu();
