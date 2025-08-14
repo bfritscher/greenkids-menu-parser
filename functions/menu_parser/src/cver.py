@@ -201,13 +201,13 @@ def main(context):
 
     databases = Databases(client)
 
-    if not os.environ.get('APPWRITE_FUNCTION_ENDPOINT') or not os.environ.get('APPWRITE_FUNCTION_API_KEY'):
+    if not os.environ.get('APPWRITE_FUNCTION_API_ENDPOINT') or not context.req.headers["x-appwrite-key"]:
         raise Exception(
             'Environment variables are not set. Function cannot use Appwrite SDK.')
     (client
-     .set_endpoint(os.environ.get('APPWRITE_FUNCTION_ENDPOINT', None))
+     .set_endpoint(os.environ.get('APPWRITE_FUNCTION_API_ENDPOINT', None))
      .set_project(os.environ.get('APPWRITE_FUNCTION_PROJECT_ID', None))
-     .set_key(os.environ.get('APPWRITE_FUNCTION_API_KEY', None))
+     .set_key(context.req.headers["x-appwrite-key"])
      )
 
     def save_menu(menu):
