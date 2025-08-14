@@ -211,7 +211,7 @@ def main(context):
      )
 
     def save_menu(menu):
-        return databases.create_document('greenkids', 'menu', ID.unique(), json.dumps(menu, default=str))
+        return databases.create_document('cver', 'menu', ID.unique(), json.dumps(menu, default=str))
 
     new_found = 0
     menus = get_menus()
