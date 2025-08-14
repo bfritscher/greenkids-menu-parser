@@ -23,6 +23,15 @@
             margin: 2em;
             line-height: 1.5;
         }
+    #menu .line {
+      margin: 0.2em 0;
+    }
+    #menu .subtitle {
+      margin-top: 1em;
+      margin-bottom: 0.4em;
+      font-size: 0.8em;
+      font-style: italic;
+    }
         .source {
             font-size: 0.8em;
             color: #666;
@@ -88,8 +97,25 @@
               menuDiv.innerHTML = "Pas de menu aujourd'hui";
             } else {
               const menu = data.documents[0];
-              const formattedText = menu.description.replace(/\n/g, "<br>");
-              menuDiv.innerHTML = formattedText;
+              // Render line by line, promote a line equal to "4 heures" to a subtitle with spacing
+              const lines = (menu.description || "").split(/\n/);
+              menuDiv.innerHTML = ""; // clear
+              const subtitleRe = /^\s*4\s*heures\s*$/i;
+              lines.forEach((raw) => {
+                const line = raw.trimEnd();
+                if (!line) return; // skip empty trailing lines
+                if (subtitleRe.test(line)) {
+                  const el = document.createElement('div');
+                  el.className = 'subtitle';
+                  el.textContent = '4 heures';
+                  menuDiv.appendChild(el);
+                } else {
+                  const el = document.createElement('div');
+                  el.className = 'line';
+                  el.textContent = line;
+                  menuDiv.appendChild(el);
+                }
+              });
             }
           }).catch((error) => {
             menuDiv.innerHTML = "Erreur de chargement";
