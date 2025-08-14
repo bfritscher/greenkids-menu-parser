@@ -1,9 +1,9 @@
 {
-    "projectName": "greenkids menus",
+    "projectName": "cver menus",
     "databases": [
         {
-            "$id": "greenkids",
-            "name": "greenkids"
+            "$id": "cver",
+            "name": "cver"
         }
     ],
     "collections": [
@@ -14,7 +14,7 @@
                 "read(\"guests\")",
                 "read(\"users\")"
             ],
-            "databaseId": "greenkids",
+            "databaseId": "cver",
             "name": "menu",
             "enabled": true,
             "documentSecurity": false,
@@ -79,7 +79,7 @@
             "name": "Menu Parser",
             "runtime": "python-3.11",
             "path": "functions/menu_parser",
-            "entrypoint": "src/lacoccinelleverte.py",
+            "entrypoint": "src/cver.py",
             "commands": "pip install -r requirements.txt",
             "ignore": [
                 "__pypackages__"
@@ -90,5 +90,5 @@
             "timeout": 300
         }
     ],
-    "projectId": "64d156eb89199d595a00"
+    "projectId": "689e2e4a0004e00d8fa4"
 }

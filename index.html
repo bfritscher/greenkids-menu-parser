@@ -54,11 +54,8 @@
         <div id="day"></div>
         <button onclick="changeDay(1)">&gt;&gt;</button>
     </nav>
-    <!-- 
-    <a class="source" href="https://www.greenkids.biz/nos-menus">greenkids.biz</a>
-    -->
       
-    <a class="source" href="https://lacoccinelleverte.net/nos-menus/">lacoccinelleverte.net</a>
+    <a class="source" href="https://cver.ch/?page_id=1467">cver.ch</a>
     
     <script>
       const APPWRITE_ENDPOINT = "https://appwrite.bf0.ch/v1";
@@ -83,7 +80,7 @@
       function fetchMenu() {
         dayDiv.innerHTML = currentDate.toLocaleDateString('fr-CH', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
         menuDiv.innerHTML = "Chargement...";
-        const url = `${APPWRITE_ENDPOINT}/databases/greenkids/collections/menu/documents?project=64d156eb89199d595a00&queries[0]=${encodeURI(`{"method":"equal","attribute":"date","values":["${dateToString(currentDate)}"]}`)}`;
+        const url = `${APPWRITE_ENDPOINT}/databases/cver/collections/menu/documents?project=689e2e4a0004e00d8fa4&queries[0]=${encodeURI(`{"method":"equal","attribute":"date","values":["${dateToString(currentDate)}"]}`)}`;
         fetch(url)
           .then((response) => response.json())
           .then((data) => {
