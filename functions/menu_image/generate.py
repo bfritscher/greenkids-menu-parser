@@ -1,6 +1,7 @@
 from google import genai
 import os
 from datetime import datetime
+import re
 
 from appwrite.client import Client
 from appwrite.services.storage import Storage
@@ -94,6 +95,22 @@ def _date_to_file_id(date_str: str) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
+def _strip_afternoon_snack(text: str) -> str:
+    """Remove the '4 heures' section and everything after it from the text.
+
+    - Case-insensitive match on '4 heures'.
+    - Tolerates extra spaces and non-breaking spaces.
+    - Returns the text up to (but not including) the match, right-stripped.
+    """
+    if not isinstance(text, str):
+        return text
+    s = text.replace("\r\n", "\n").replace("\r", "\n").replace("\u00A0", " ")
+    m = re.search(r"(?i)\b4\s*heures\b", s)
+    if m:
+        return s[: m.start()].rstrip()
+    return s
+
+
 def main(context):
     # Init Appwrite client from env + header key
     client = Client()
@@ -118,6 +135,12 @@ def main(context):
         context.error("Missing 'description' in event payload; skipping image generation")
         return context.res.send("", 204)
 
+    # Remove '4 heures' and everything after to keep only the lunch menu
+    description_for_image = _strip_afternoon_snack(description)
+    if not description_for_image.strip():
+        context.error("Description empty after removing '4 heures'; skipping image generation")
+        return context.res.send("", 204)
+
     try:
         file_id = _date_to_file_id(date_str)
     except Exception as e:
@@ -126,7 +149,7 @@ def main(context):
 
     # Generate image
     try:
-        img_bytes = generate_image_bytes(description)
+        img_bytes = generate_image_bytes(description_for_image)
     except Exception as e:
         context.error(f"Image generation failed: {e}")
         return context.res.send("", 500)
