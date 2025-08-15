@@ -88,6 +88,29 @@
             "events": [],
             "schedule": "0 23 * * 0",
             "timeout": 300
+        },
+        {
+            "$id": "menu_image",
+            "execute": [],
+            "name": "Menu Image Generator",
+            "enabled": true,
+            "logging": true,
+            "runtime": "python-3.11",
+            "scopes": [
+                "documents.read",
+                "documents.write",
+                "files.read",
+                "files.write"
+            ],
+            "events": [
+                "databases.cver.collections.menu.documents.*.create"
+            ],
+            "schedule": "",
+            "timeout": 300,
+            "entrypoint": "generate.py",
+            "commands": "pip install -r requirements.txt",
+            "specification": "s-1vcpu-512mb",
+            "path": "functions/menu_image"
         }
     ],
     "projectId": "689e2e4a0004e00d8fa4"

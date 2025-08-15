@@ -1,0 +1,1 @@
+appwrite run functions --port 3000 --with-variables --function-id "<FUNCTION_ID>"
