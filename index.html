@@ -7,9 +7,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style>
+    :root {
+      /* Overlay placed above the image to keep text readable in light mode */
+      --bg-overlay: rgba(255, 255, 255, 0.65);
+    }
         body {
             text-align: center;
             font-family: 'Open Sans', sans-serif;
+            /* Background image with overlay (set dynamically via JS), covers full viewport and stays fixed */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
         }
         nav {
             display: flex;
@@ -23,10 +32,23 @@
             margin: 2em;
             line-height: 1.5;
         }
+    #menu .line {
+      margin: 0.2em 0;
+    }
+    #menu .subtitle {
+      margin-top: 1em;
+      margin-bottom: 0.4em;
+      font-size: 0.8em;
+      font-style: italic;
+    }
         .source {
             font-size: 0.8em;
             color: #666;
         }
+    /* Subtle shadow to boost contrast on textured backgrounds */
+    #menu, nav, .source {
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
         button {
             border: none;
             background: none;
@@ -34,8 +56,12 @@
             outline: none;
         }
         @media (prefers-color-scheme: dark) {
+      :root {
+        /* Darker overlay in dark mode to keep light text readable */
+        --bg-overlay: rgba(0, 0, 0, 0.55);
+      }
             body {
-                background: #333;
+                background-color: #333; /* keep the image + overlay */
                 color: #eee;
             }
             .source {
@@ -44,6 +70,9 @@
             button {
                 color: #eee;
             }
+      #menu, nav, .source {
+        text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+      }
         }
     </style>
   </head>
@@ -80,8 +109,15 @@
         return `${year}-${month}-${day}`;
       }
 
+      function updateBackground() {
+        const dateStr = dateToString(currentDate);
+        const imgUrl = `${APPWRITE_ENDPOINT}/storage/buckets/menu/files/${dateStr}/view?project=64d156eb89199d595a00`;
+        document.body.style.backgroundImage = `linear-gradient(var(--bg-overlay), var(--bg-overlay)), url("${imgUrl}")`;
+      }
+
       function fetchMenu() {
         dayDiv.innerHTML = currentDate.toLocaleDateString('fr-CH', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'});
+        updateBackground();
         menuDiv.innerHTML = "Chargement...";
         const url = `${APPWRITE_ENDPOINT}/databases/greenkids/collections/menu/documents?project=64d156eb89199d595a00&queries[0]=${encodeURI(`{"method":"equal","attribute":"date","values":["${dateToString(currentDate)}"]}`)}`;
         fetch(url)
