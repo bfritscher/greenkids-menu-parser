@@ -10,6 +10,7 @@ import re
 import os
 import dateparser
 import datetime
+from urllib.parse import urljoin
 
 DATA_FOLDER = 'data'
 PDF_FOLDER = os.path.join(DATA_FOLDER, 'pdf')
@@ -53,7 +54,9 @@ def find_all_pdf_links(start_url):
     attachment_links = find_attachment_links(start_url)
     for attachment_url in attachment_links:
         try:
-            pdf_links = find_pdf_links(attachment_url)
+            # Resolve relative URLs to absolute URLs
+            absolute_url = urljoin(start_url, attachment_url)
+            pdf_links = find_pdf_links(absolute_url)
             all_pdf_links.extend(pdf_links)
         except Exception:
             # Skip if we can't fetch the attachment page
@@ -99,10 +102,7 @@ def extract_menus(text):
         menu_content = match[3].strip()
         
         # Create a date object using the extracted date and month
-        try:
-            date_obj = dateparser.parse(f"{date} {month} {year}", languages=['fr'])
-        except ValueError:
-            date_obj = None
+        date_obj = dateparser.parse(f"{date} {month} {year}", languages=['fr'])
         
         menus.append({
             "dow": day.capitalize(), 
