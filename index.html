@@ -149,6 +149,49 @@
           });
       }
       fetchMenu();
+
+      // Swipe support for mobile
+      let touchStartX = 0;
+      let touchEndX = 0;
+      const swipeThreshold = 50;
+
+      document.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+
+      document.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        const diff = touchEndX - touchStartX;
+        if (Math.abs(diff) > swipeThreshold) {
+          if (diff > 0) {
+            changeDay(-1); // swipe right = previous day
+          } else {
+            changeDay(1);  // swipe left = next day
+          }
+        }
+      }, { passive: true });
+
+      // Click on left/right side of page to navigate
+      document.addEventListener('click', (e) => {
+        // Ignore clicks on buttons, links, or nav
+        if (e.target.closest('button, a, nav')) return;
+        const x = e.clientX;
+        const width = window.innerWidth;
+        if (x < width * 0.3) {
+          changeDay(-1); // left side = previous day
+        } else if (x > width * 0.7) {
+          changeDay(1);  // right side = next day
+        }
+      });
+
+      // Keyboard arrow support
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+          changeDay(-1);
+        } else if (e.key === 'ArrowRight') {
+          changeDay(1);
+        }
+      });
     </script>
   </body>
 </html>
