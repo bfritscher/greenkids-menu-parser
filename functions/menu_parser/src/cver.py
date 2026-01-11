@@ -44,19 +44,22 @@ def find_link():
     response = SESSION.get(url, headers=HEADERS)
     response.raise_for_status()
     
-    # Find direct PDF links
-    pdf_links = re.findall(r'="([^"]+\.pdf)"', response.text, re.IGNORECASE)
+    # Find direct PDF links (supports both single and double quotes)
+    pdf_links = re.findall(r'=["\']([^"\']+\.pdf)["\']', response.text, re.IGNORECASE)
     
     # Find attachment_id links and follow them to get PDF links
-    attachment_links = re.findall(r'="([^"]*\?attachment_id=\d+)"', response.text, re.IGNORECASE)
+    attachment_links = re.findall(r'=["\']([^"\']*\?attachment_id=\d+)["\']', response.text, re.IGNORECASE)
+    print(f"Found attachment links: {attachment_links}")
     for attachment_link in attachment_links:
         # Make absolute URL if needed
         full_url = urljoin(url, attachment_link)
+        print(f"Fetching attachment page: {full_url}")
         try:
             attachment_response = SESSION.get(full_url, headers=HEADERS)
             attachment_response.raise_for_status()
-            # Extract PDF links from the attachment page
-            attachment_pdf_links = re.findall(r'="([^"]+\.pdf)"', attachment_response.text, re.IGNORECASE)
+            # Extract PDF links from the attachment page (supports both single and double quotes)
+            attachment_pdf_links = re.findall(r'=["\']([^"\']+\.pdf)["\']', attachment_response.text, re.IGNORECASE)
+            print(f"Found PDF links on attachment page: {attachment_pdf_links}")
             pdf_links.extend(attachment_pdf_links)
         except Exception as e:
             print(f"Failed to fetch attachment page {full_url}: {e}")
