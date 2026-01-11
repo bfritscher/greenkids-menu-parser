@@ -43,10 +43,34 @@ def find_link():
     url = "https://cver.ch/?page_id=1467"
     response = SESSION.get(url, headers=HEADERS)
     response.raise_for_status()
+    
+    # Find direct PDF links
     pdf_links = re.findall(r'="([^"]+\.pdf)"', response.text, re.IGNORECASE)
-    links = pdf_links
-    print(f"Found PDF link: {links}")
-    return links
+    
+    # Find attachment_id links and follow them to get PDF links
+    attachment_links = re.findall(r'="([^"]*\?attachment_id=\d+)"', response.text, re.IGNORECASE)
+    for attachment_link in attachment_links:
+        # Make absolute URL if needed
+        full_url = urljoin(url, attachment_link)
+        try:
+            attachment_response = SESSION.get(full_url, headers=HEADERS)
+            attachment_response.raise_for_status()
+            # Extract PDF links from the attachment page
+            attachment_pdf_links = re.findall(r'="([^"]+\.pdf)"', attachment_response.text, re.IGNORECASE)
+            pdf_links.extend(attachment_pdf_links)
+        except Exception as e:
+            print(f"Failed to fetch attachment page {full_url}: {e}")
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_links = []
+    for link in pdf_links:
+        if link not in seen:
+            seen.add(link)
+            unique_links.append(link)
+    
+    print(f"Found PDF links: {unique_links}")
+    return unique_links
 
 def url_to_file_path(url):
     filename = url.split("/")[-1]
