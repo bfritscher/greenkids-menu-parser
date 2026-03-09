@@ -1,4 +1,5 @@
 from google import genai
+from google.genai import types
 import os
 from datetime import datetime
 import re
@@ -6,6 +7,8 @@ import re
 from appwrite.client import Client
 from appwrite.services.storage import Storage
 from appwrite.input_file import InputFile
+
+
 
 def generate_image_bytes(description: str) -> bytes:
     """Generate a single square JPEG image from a textual description using Google GenAI.
@@ -16,60 +19,65 @@ def generate_image_bytes(description: str) -> bytes:
     if not api_key:
         raise RuntimeError("Missing GEMINI_API_KEY env var")
 
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(api_key=api_key, vertexai=True)
 
     # Strongly discourage text in image and steer style
-    prompt = (
-        "DO NOT DRAW ANY TEXTS!\n"
-        "Generate a high-quality photo of a cafeteria/cantina meal (plated, appetizing).\n"
-        "Only depict food and dishware, no logos or text.\n\n"
-        "Use the following items (combine sensibly, multiple small plates ok for sides):\n\n"
-        f"{description.strip()}\n"
-    )
+    prompt = f"""You are an expert food photographer and stylist. Your task is to generate a photorealistic, highly appetizing image of a plated cafeteria/cantina meal based on the menu provided below.  Only depict food and dishware, no surroundings
 
-    result = client.models.generate_images(
-        model="models/imagen-4.0-generate-001",
-        prompt=prompt,
-        config=dict(
-            number_of_images=1,
-            output_mime_type="image/jpeg",
-            person_generation="DONT_ALLOW",
+Before generating the image, you must strictly follow these rules to avoid safety filters and ensure high quality:
+1. TRANSLATE TO VISUALS: Read the provided menu (which may be in French or contain abbreviations) and internally translate it into purely visual descriptions of generic cooked food.
+2. NO BRANDS OR LOGOS: Completely ignore any brand names, trademarks, or geographical abbreviations (e.g., Ebly, CH, Fr). Do not draw any packaging. Render only the generic food equivalent (e.g., render \"Ebly\" simply as \"cooked wheat grains\").
+3. IGNORE SYMBOLS: Ignore all special characters, bullet points, asterisks (***), or symbols (∆). 
+4. ZERO TEXT: Do strictly NOT generate any words, letters, typography, floating text, or labels anywhere in the image. Dishware, cups, and trays must be completely blank and unbranded.
+5. COMPOSITION: Arrange the food sensibly using multiple small plates and bowls if needed but try to keep main meal together on one plate and split when it is needed. No Cutlery. No try. Photostudio shooting on plane light grey background. Use bright, natural, appetizing food-photography lighting.
+
+Generate the image based on the food elements found in this menu:
+
+{description.strip()}
+    """
+    generate_content_config = types.GenerateContentConfig(
+        temperature = 1,
+        top_p = 0.95,
+        max_output_tokens = 32768,
+        response_modalities = ["IMAGE"],
+        safety_settings = [types.SafetySetting(
+        category="HARM_CATEGORY_HATE_SPEECH",
+        threshold="OFF"
+        ),types.SafetySetting(
+        category="HARM_CATEGORY_DANGEROUS_CONTENT",
+        threshold="OFF"
+        ),types.SafetySetting(
+        category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        threshold="OFF"
+        ),types.SafetySetting(
+        category="HARM_CATEGORY_HARASSMENT",
+        threshold="OFF"
+        )],
+        image_config=types.ImageConfig(
             aspect_ratio="1:1",
             image_size="1K",
+            output_mime_type="image/jpeg",
+        ),
+        thinking_config=types.ThinkingConfig(
+        thinking_level="HIGH",
         ),
     )
 
-    if not getattr(result, "generated_images", None):
+    result = client.models.generate_content(
+        model="gemini-3.1-flash-image-preview",
+        contents=prompt,
+        config=generate_content_config
+    )
+
+    if not result.candidates or not result.candidates[0].content.parts:
         raise RuntimeError("No images generated")
 
-    generated_image = result.generated_images[0]
-    img = getattr(generated_image, "image", None)
-    if img is None:
-        raise RuntimeError("Image payload missing in response")
+    part = result.candidates[0].content.parts[0]
+    if part.inline_data and part.inline_data.data:
+        # inline_data.data contains the bytes
+        return part.inline_data.data
 
-    # Prefer direct bytes provided by the SDK
-    data = getattr(img, "image_bytes", None)
-    if data:
-        return data
-
-    # Fallback: some backends may only support saving to a file
-    try:
-        import tempfile
-        mime = getattr(img, "mime_type", None) or "image/jpeg"
-        ext = ".jpg" if mime == "image/jpeg" else ".png" if mime == "image/png" else ".webp" if mime == "image/webp" else ".bin"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
-            tmp_path = tmp.name
-        try:
-            img.save(tmp_path)
-            with open(tmp_path, "rb") as f:
-                return f.read()
-        finally:
-            try:
-                os.remove(tmp_path)
-            except Exception:
-                pass
-    except Exception as e:
-        raise RuntimeError(f"Could not extract image bytes: {e}")
+    raise RuntimeError("Image payload missing in response")
 
 def _parse_event_payload(body) -> dict:
     """Assumes body is an already-parsed dict with 'description' and 'date'."""
