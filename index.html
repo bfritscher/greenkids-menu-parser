@@ -84,7 +84,10 @@
         <button onclick="changeDay(1)">&gt;&gt;</button>
     </nav>
       
-    <a class="source" href="https://cver.ch/?page_id=1467">cver.ch</a>
+<a class="source" href="https://cver.ch/?page_id=1467">cver.ch</a>
+    <button onclick="regenerateImage()" style="position:fixed;bottom:4px;right:4px;width:30px;height:30px;opacity:0.15;z-index:9999;display:flex;align-items:center;justify-content:center;color:inherit;" title="Regenerate Image">
+      <svg fill="currentColor" viewBox="0 0 24 24" width="16px" height="16px" xmlns="http://www.w3.org/2000/svg"><path d="M12 2.75a9.25 9.25 0 1 0 4.737 17.197l-1.01-1.425A7.75 7.75 0 1 1 19.75 12h-1.5l2.625 3.375L23.5 12h-2.25a9.25 9.25 0 0 0-9.25-9.25z"/></svg>
+    </button>
     
     <script>
       const APPWRITE_ENDPOINT = "https://appwrite.bf0.ch/v1";
@@ -93,6 +96,7 @@
       const day = 60 * 60 * 24 * 1000;
 
       let currentDate = new Date();
+      let currentMenuId = null;
 
       function changeDay(direction) {
         currentDate = new Date(currentDate.getTime() + day * direction);
@@ -106,9 +110,9 @@
         return `${year}-${month}-${day}`;
       }
 
-      function updateBackground() {
+      function updateBackground(cacheBust = false) {
         const dateStr = dateToString(currentDate);
-        const imgUrl = `${APPWRITE_ENDPOINT}/storage/buckets/cver/files/${dateStr}/view?project=689e2e4a0004e00d8fa4`;
+        const imgUrl = `${APPWRITE_ENDPOINT}/storage/buckets/cver/files/${dateStr}/view?project=689e2e4a0004e00d8fa4${cacheBust ? `&t=${new Date().getTime()}` : ''}`;
         document.body.style.backgroundImage = `linear-gradient(var(--bg-overlay), var(--bg-overlay)), url("${imgUrl}")`;
       }
 
@@ -121,9 +125,11 @@
           .then((response) => response.json())
           .then((data) => {
             if (data.documents.length == 0) {
+              currentMenuId = null;
               menuDiv.innerHTML = "Pas de menu aujourd'hui";
             } else {
               const menu = data.documents[0];
+              currentMenuId = menu.$id;
               // Render line by line, promote a line equal to "4 heures" to a subtitle with spacing
               const lines = (menu.description || "").split(/\n/);
               menuDiv.innerHTML = ""; // clear
@@ -192,6 +198,24 @@
           changeDay(1);
         }
       });
+
+      function regenerateImage() {
+        if (!currentMenuId) return;
+        if (confirm("Regenerate the image?")) {
+          fetch("https://cver-image.appwrite.bf0.ch/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ id: currentMenuId })
+          }).then(res => {
+            updateBackground(true);
+          }).catch(err => {
+            console.error("Failed to trigger regeneration", err);
+            alert("Failed to regenerate image.");
+          });
+        }
+      }
     </script>
   </body>
 </html>
