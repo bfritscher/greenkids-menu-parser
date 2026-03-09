@@ -125,6 +125,15 @@ def _strip_afternoon_snack(text: str) -> str:
 
 
 def main(context):
+    cors_headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization, x-appwrite-project, x-appwrite-key"
+    }
+
+    if getattr(context.req, "method", "") == "OPTIONS":
+        return context.res.send("", 200, cors_headers)
+
     # Init Appwrite client from env + header key
     client = Client()
 
@@ -158,30 +167,30 @@ def main(context):
             date_str = doc.get("date")
         except Exception as e:
             context.error(f"Failed to fetch document {menu_id}: {e}")
-            return context.res.send("", 404)
+            return context.res.send("", 404, cors_headers)
 
     if not description:
         context.error("Missing 'description' or 'id' in event payload; skipping image generation")
-        return context.res.send("", 204)
+        return context.res.send("", 204, cors_headers)
 
     # Remove '4 heures' and everything after to keep only the lunch menu
     description_for_image = _strip_afternoon_snack(description)
     if not description_for_image.strip():
         context.error("Description empty after removing '4 heures'; skipping image generation")
-        return context.res.send("", 204)
+        return context.res.send("", 204, cors_headers)
 
     try:
         file_id = _date_to_file_id(date_str)
     except Exception as e:
         context.error(str(e))
-        return context.res.send("", 400)
+        return context.res.send("", 400, cors_headers)
 
     # Generate image
     try:
         img_bytes = generate_image_bytes(description_for_image)
     except Exception as e:
         context.error(f"Image generation failed: {e}")
-        return context.res.send("", 500)
+        return context.res.send("", 500, cors_headers)
 
     # Upload to Storage bucket 'menu' with fileId yyyy-mm-dd
     try:
@@ -194,9 +203,9 @@ def main(context):
         context.log(f"Saved image to bucket 'menu' with id {file_id}")
     except Exception as e:
         context.error(f"Failed to save image to Storage: {e}")
-        return context.res.send("", 500)
+        return context.res.send("", 500, cors_headers)
 
-    return context.res.send("", 201)
+    return context.res.send("", 201, cors_headers)
 
 
 if __name__ == "__main__":
