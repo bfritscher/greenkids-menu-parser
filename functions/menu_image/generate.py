@@ -194,6 +194,12 @@ def main(context):
 
     # Upload to Storage bucket 'menu' with fileId yyyy-mm-dd
     try:
+        try:
+            storage.delete_file(bucket_id="menu", file_id=file_id)
+            context.log(f"Deleted existing image with id {file_id}")
+        except Exception:
+            pass # Ignore if it doesn't exist
+
         input_file = InputFile.from_bytes(img_bytes, filename=f"{file_id}.jpg")
         storage.create_file(
             bucket_id="menu",
