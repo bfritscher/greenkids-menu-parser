@@ -113,9 +113,12 @@
         return `${year}-${month}-${day}`;
       }
 
-      function updateBackground() {
+      function updateBackground(cacheBust = false) {
         const dateStr = dateToString(currentDate);
-        const imgUrl = `${APPWRITE_ENDPOINT}/storage/buckets/menu/files/${dateStr}/view?project=64d156eb89199d595a00`;
+        let imgUrl = `${APPWRITE_ENDPOINT}/storage/buckets/menu/files/${dateStr}/view?project=64d156eb89199d595a00`;
+        if (cacheBust) {
+            imgUrl += `&t=${new Date().getTime()}`;
+        }
         document.body.style.backgroundImage = `linear-gradient(var(--bg-overlay), var(--bg-overlay)), url("${imgUrl}")`;
       }
 
@@ -195,11 +198,10 @@
             },
             body: JSON.stringify({ id: currentMenuId })
           }).then(res => {
-            console.log("Regeneration triggered", res);
-            alert("Image regeneration started!");
+            updateBackground(true);
           }).catch(err => {
             console.error("Failed to trigger regeneration", err);
-            alert("Failed to start regeneration.");
+            alert("Failed to regenerate image.");
           });
         }
       }
