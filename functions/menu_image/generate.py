@@ -6,6 +6,7 @@ import re
 
 from appwrite.client import Client
 from appwrite.services.storage import Storage
+from appwrite.services.databases import Databases
 from appwrite.input_file import InputFile
 
 
@@ -80,10 +81,14 @@ Generate the image based on the food elements found in this menu:
     raise RuntimeError("Image payload missing in response")
 
 def _parse_event_payload(body) -> dict:
-    """Assumes body is an already-parsed dict with 'description' and 'date'."""
+    """Assumes body is an already-parsed dict with 'description' and 'date' or 'id'."""
     if not isinstance(body, dict):
-        return {"description": None, "date": None}
-    return {"description": body.get("description"), "date": body.get("date")}
+        return {"description": None, "date": None, "id": None}
+    return {
+        "description": body.get("description"), 
+        "date": body.get("date"),
+        "id": body.get("$id", body.get("id"))
+    }
 
 
 def _date_to_file_id(date_str: str) -> str:
@@ -133,14 +138,30 @@ def main(context):
     )
 
     storage = Storage(client)
+    databases = Databases(client)
 
     # Parse event body for description + date (assumes dict)
     payload = _parse_event_payload(getattr(context.req, "body", {}))
     description = payload.get("description")
     date_str = payload.get("date")
+    menu_id = payload.get("id")
+
+    if menu_id and (not description or not date_str):
+        # Fetch from database
+        try:
+            doc = databases.get_document(
+                database_id="greenkids",
+                collection_id="menu",
+                document_id=menu_id
+            )
+            description = doc.get("description")
+            date_str = doc.get("date")
+        except Exception as e:
+            context.error(f"Failed to fetch document {menu_id}: {e}")
+            return context.res.send("", 404)
 
     if not description:
-        context.error("Missing 'description' in event payload; skipping image generation")
+        context.error("Missing 'description' or 'id' in event payload; skipping image generation")
         return context.res.send("", 204)
 
     # Remove '4 heures' and everything after to keep only the lunch menu
