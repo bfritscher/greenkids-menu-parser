@@ -3,7 +3,8 @@
     "databases": [
         {
             "$id": "cver",
-            "name": "cver"
+            "name": "cver",
+            "enabled": true
         }
     ],
     "collections": [
@@ -22,16 +23,15 @@
                 {
                     "key": "dow",
                     "type": "string",
-                    "status": "available",
                     "required": true,
                     "array": false,
                     "size": 20,
-                    "default": null
+                    "default": null,
+                    "encrypt": false
                 },
                 {
                     "key": "date",
                     "type": "datetime",
-                    "status": "available",
                     "required": true,
                     "array": false,
                     "format": "",
@@ -40,11 +40,11 @@
                 {
                     "key": "description",
                     "type": "string",
-                    "status": "available",
                     "required": false,
                     "array": false,
                     "size": 8000,
-                    "default": null
+                    "default": null,
+                    "encrypt": false
                 }
             ],
             "indexes": [
@@ -76,7 +76,7 @@
     "functions": [
         {
             "$id": "menu_parser",
-            "name": "Menu Parser",
+            "name": "menu_parser",
             "runtime": "python-3.11",
             "path": "functions/menu_parser",
             "entrypoint": "src/cver.py",
@@ -86,12 +86,21 @@
             ],
             "execute": [],
             "events": [],
-            "schedule": "0 23 * * 0",
-            "timeout": 300
+            "schedule": "0 17,23 * * 0,5",
+            "timeout": 60,
+            "enabled": true,
+            "logging": true,
+            "scopes": [
+                "documents.read",
+                "documents.write"
+            ],
+            "specification": "s-1vcpu-512mb"
         },
         {
             "$id": "menu_image",
-            "execute": [],
+            "execute": [
+                "any"
+            ],
             "name": "Menu Image Generator",
             "enabled": true,
             "logging": true,
@@ -113,5 +122,23 @@
             "path": "functions/menu_image"
         }
     ],
-    "projectId": "689e2e4a0004e00d8fa4"
+    "projectId": "689e2e4a0004e00d8fa4",
+    "buckets": [
+        {
+            "$id": "cver",
+            "$permissions": [
+                "read(\"any\")"
+            ],
+            "fileSecurity": false,
+            "name": "cver",
+            "enabled": true,
+            "maximumFileSize": 30000000,
+            "allowedFileExtensions": [
+                "jpg"
+            ],
+            "compression": "none",
+            "encryption": false,
+            "antivirus": false
+        }
+    ]
 }
