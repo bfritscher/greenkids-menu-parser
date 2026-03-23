@@ -1,2 +1,2 @@
-appwrite==11.1.0
+appwrite==16.0.0
 google-genai==1.66.0

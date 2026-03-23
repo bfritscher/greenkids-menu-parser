@@ -71,12 +71,94 @@
                     ]
                 }
             ]
+        },
+        {
+            "$id": "system_queue",
+            "$permissions": [],
+            "databaseId": "cver",
+            "name": "system_queue",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "function_id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "encrypt": false
+                },
+                {
+                    "key": "payload",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1000000,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
+                    "key": "status",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 20,
+                    "encrypt": false
+                },
+                {
+                    "key": "retries",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "default": 0
+                },
+                {
+                    "key": "error_log",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 1000000,
+                    "default": null,
+                    "encrypt": false
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "status_idx",
+                    "type": "key",
+                    "status": "available",
+                    "attributes": [
+                        "status"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
+        },
+        {
+            "$id": "system_locks",
+            "$permissions": [],
+            "databaseId": "cver",
+            "name": "system_locks",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "locked_at",
+                    "type": "datetime",
+                    "required": true,
+                    "array": false,
+                    "format": ""
+                }
+            ],
+            "indexes": []
         }
     ],
     "functions": [
         {
             "$id": "menu_parser",
-            "name": "menu_parser",
+            "name": "Menu Parser",
             "runtime": "python-3.11",
             "path": "functions/menu_parser",
             "entrypoint": "src/cver.py",
@@ -111,15 +193,55 @@
                 "files.read",
                 "files.write"
             ],
-            "events": [
-                "databases.cver.collections.menu.documents.*.create"
-            ],
+            "events": [],
             "schedule": "",
             "timeout": 300,
             "entrypoint": "generate.py",
             "commands": "pip install -r requirements.txt",
             "specification": "s-1vcpu-512mb",
             "path": "functions/menu_image"
+        },
+        {
+            "$id": "queue_trigger",
+            "execute": [],
+            "name": "Queue Trigger",
+            "enabled": true,
+            "logging": true,
+            "runtime": "python-3.11",
+            "scopes": [
+                "documents.write",
+                "execution.write"
+            ],
+            "events": [
+                "databases.cver.collections.menu.documents.*.create"
+            ],
+            "schedule": "",
+            "timeout": 15,
+            "entrypoint": "main.py",
+            "commands": "pip install -r requirements.txt",
+            "specification": "s-1vcpu-512mb",
+            "path": "functions/queue_trigger"
+        },
+        {
+            "$id": "queue_worker",
+            "execute": [],
+            "name": "Queue Worker",
+            "enabled": true,
+            "logging": true,
+            "runtime": "python-3.11",
+            "scopes": [
+                "documents.read",
+                "documents.write",
+                "execution.read",
+                "execution.write"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 900,
+            "entrypoint": "main.py",
+            "commands": "pip install -r requirements.txt",
+            "specification": "s-1vcpu-512mb",
+            "path": "functions/queue_worker"
         }
     ],
     "projectId": "689e2e4a0004e00d8fa4",

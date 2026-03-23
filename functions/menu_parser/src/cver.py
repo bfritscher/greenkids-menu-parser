@@ -1,7 +1,7 @@
 import requests
 import json
 from appwrite.client import Client
-from appwrite.services.databases import Databases
+from appwrite.services.tables_db import TablesDB
 from appwrite.id import ID
 import traceback
 from pypdf import PdfReader
@@ -205,7 +205,7 @@ def extract_menus(text):
         menus.append(
             {
                 "dow": day_lc.capitalize(),
-                "date": day_to_date.get(day_lc),
+                "date": day_to_date.get(day_lc, "").isoformat() if day_to_date.get(day_lc) else None,
                 "description": description,
             }
         )
@@ -226,7 +226,7 @@ def get_menus():
 def main(context):
     client = Client()
 
-    databases = Databases(client)
+    tables_db = TablesDB(client)
 
     if not os.environ.get('APPWRITE_FUNCTION_API_ENDPOINT') or not context.req.headers["x-appwrite-key"]:
         raise Exception(
@@ -238,7 +238,12 @@ def main(context):
      )
 
     def save_menu(menu):
-        return databases.create_document('cver', 'menu', ID.unique(), json.dumps(menu, default=str))
+        return tables_db.create_row(
+            database_id='cver', 
+            table_id='menu', 
+            row_id=ID.unique(), 
+            data=menu if isinstance(menu, dict) else json.loads(json.dumps(menu, default=str))
+        )
 
     new_found = 0
     menus = get_menus()
