@@ -52,13 +52,17 @@ def main(context):
     )
     context.log(f"Queued menu_image for menu {menu_id}")
 
-    # Start worker (worker handles lock/dedup itself)
+    # Start worker only if no lock exists (worker is already running otherwise)
     try:
-        functions.create_execution(
-            function_id=WORKER_FUNCTION_ID, body="{}", xasync=True
-        )
-        context.log("Worker started.")
-    except Exception as e:
-        context.error(f"Failed to start worker: {e}")
+        tables_db.get_row(DATABASE_ID, "system_locks", "queue_worker_lock")
+        context.log("Worker already active (lock exists), skipping spawn.")
+    except Exception:
+        try:
+            functions.create_execution(
+                function_id=WORKER_FUNCTION_ID, body="{}", xasync=True
+            )
+            context.log("Worker started.")
+        except Exception as e:
+            context.error(f"Failed to start worker: {e}")
 
     return context.res.send("Queued.")

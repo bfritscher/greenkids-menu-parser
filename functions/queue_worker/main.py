@@ -103,51 +103,11 @@ def _recover_stuck_jobs(tables_db, context):
         context.error(f"Recovery check failed: {e}")
 
 
-def _process_one_job(job, functions, tables_db, context):
-    """Process a single queue job. Returns True to continue, False to stop."""
-    job_id = job.id
-    func_id = job.data.get("function_id")
-    payload = job.data.get("payload") or "{}"
-    retries = job.data.get("retries", 0)
+def _poll_execution(job_id, func_id, execution_id, retries, tables_db, functions, context):
+    """Poll an execution until completion/failure/timeout.
 
-    if not func_id:
-        tables_db.update_row(
-            DATABASE_ID, QUEUE_TABLE, job_id,
-            data={"status": "failed", "error_log": "Missing function_id"},
-        )
-        return True
-
-    if retries >= MAX_RETRIES:
-        tables_db.update_row(
-            DATABASE_ID, QUEUE_TABLE, job_id,
-            data={
-                "status": "failed",
-                "error_log": f"Max retries ({MAX_RETRIES}) exceeded",
-            },
-        )
-        context.log(f"Job {job_id} exceeded max retries.")
-        return True
-
-    # Mark as processing
-    tables_db.update_row(
-        DATABASE_ID, QUEUE_TABLE, job_id, data={"status": "processing"}
-    )
-
-    try:
-        execution = functions.create_execution(
-            function_id=func_id, body=payload, xasync=True
-        )
-        execution_id = execution.id
-        context.log(f"Started {func_id} execution {execution_id}")
-    except Exception as e:
-        tables_db.update_row(
-            DATABASE_ID, QUEUE_TABLE, job_id,
-            data={"status": "failed", "error_log": str(e)[:1000]},
-        )
-        context.error(f"Failed to start {func_id}: {e}")
-        return True
-
-    # Poll for completion
+    Returns True to continue processing queue, False to stop (timeout).
+    """
     for attempt in range(1, POLL_MAX_ATTEMPTS + 1):
         time.sleep(POLL_INTERVAL)
         _refresh_lock(tables_db)
@@ -196,7 +156,7 @@ def _process_one_job(job, functions, tables_db, context):
                 )
             return True
 
-    # Poll timeout — re-queue for retry
+    # Poll timeout — keep execution_id so next worker can check it
     context.error(
         f"Job {job_id} poll timeout ({POLL_MAX_ATTEMPTS * POLL_INTERVAL}s)"
     )
@@ -205,10 +165,109 @@ def _process_one_job(job, functions, tables_db, context):
         data={
             "status": "pending",
             "retries": retries + 1,
-            "error_log": "Poll timeout",
+            "error_log": f"Poll timeout (execution {execution_id})",
         },
     )
     return False
+
+
+def _process_one_job(job, functions, tables_db, context):
+    """Process a single queue job. Returns True to continue, False to stop."""
+    job_id = job.id
+    func_id = job.data.get("function_id")
+    payload = job.data.get("payload") or "{}"
+    retries = job.data.get("retries", 0)
+
+    if not func_id:
+        tables_db.update_row(
+            DATABASE_ID, QUEUE_TABLE, job_id,
+            data={"status": "failed", "error_log": "Missing function_id"},
+        )
+        return True
+
+    if retries >= MAX_RETRIES:
+        tables_db.update_row(
+            DATABASE_ID, QUEUE_TABLE, job_id,
+            data={
+                "status": "failed",
+                "error_log": f"Max retries ({MAX_RETRIES}) exceeded",
+            },
+        )
+        context.log(f"Job {job_id} exceeded max retries.")
+        return True
+
+    # Check if a previous execution already ran (dedup on retry)
+    prev_execution_id = job.data.get("execution_id")
+    if prev_execution_id:
+        try:
+            check = functions.get_execution(
+                function_id=func_id, execution_id=prev_execution_id
+            )
+            status = (
+                check.status.value
+                if hasattr(check.status, "value")
+                else str(check.status)
+            )
+            if status == "completed":
+                tables_db.update_row(
+                    DATABASE_ID, QUEUE_TABLE, job_id,
+                    data={"status": "completed"},
+                )
+                context.log(
+                    f"Job {job_id} already completed (exec {prev_execution_id})."
+                )
+                return True
+            if status in ("waiting", "processing"):
+                context.log(
+                    f"Job {job_id} exec {prev_execution_id} still {status}, resuming poll."
+                )
+                tables_db.update_row(
+                    DATABASE_ID, QUEUE_TABLE, job_id,
+                    data={"status": "processing"},
+                )
+                return _poll_execution(
+                    job_id, func_id, prev_execution_id, retries,
+                    tables_db, functions, context,
+                )
+            context.log(
+                f"Job {job_id} prev exec {prev_execution_id} "
+                f"status={status}, starting new."
+            )
+        except Exception as e:
+            context.error(f"Prev execution check failed: {e}")
+
+    # Mark as processing
+    tables_db.update_row(
+        DATABASE_ID, QUEUE_TABLE, job_id, data={"status": "processing"}
+    )
+
+    try:
+        execution = functions.create_execution(
+            function_id=func_id, body=payload, xasync=True
+        )
+        execution_id = execution.id
+        context.log(f"Started {func_id} execution {execution_id}")
+    except Exception as e:
+        tables_db.update_row(
+            DATABASE_ID, QUEUE_TABLE, job_id,
+            data={"status": "failed", "error_log": str(e)[:1000]},
+        )
+        context.error(f"Failed to start {func_id}: {e}")
+        return True
+
+    # Store execution_id for dedup on retry
+    try:
+        tables_db.update_row(
+            DATABASE_ID, QUEUE_TABLE, job_id,
+            data={"execution_id": execution_id},
+        )
+    except Exception:
+        pass
+
+    return _poll_execution(
+        job_id, func_id, execution_id, retries,
+        tables_db, functions, context,
+    )
 
 
 def main(context):
@@ -217,8 +276,12 @@ def main(context):
     tables_db = TablesDB(client)
     functions = Functions(client)
 
-    if not _acquire_lock(tables_db, context):
-        return context.res.send("Another worker active.")
+    try:
+        if not _acquire_lock(tables_db, context):
+            return context.res.send("Another worker active.")
+    except Exception as e:
+        context.error(f"Lock acquisition failed: {e}")
+        return context.res.send("Lock error.")
 
     has_more = False
     try:
