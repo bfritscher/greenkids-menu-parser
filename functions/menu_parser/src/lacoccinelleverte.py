@@ -16,7 +16,7 @@ os.makedirs(DATA_FOLDER, exist_ok=True)
 os.makedirs(PDF_FOLDER, exist_ok=True)
 
 def find_link():
-    url = "https://lacoccinelleverte.net/nos-menus/"
+    url = "https://lacoccinelleverte.ch/nos-menus/"
     response = requests.get(url)
     response.raise_for_status()
     pdf_links = re.findall(r'="([^"]+\.pdf)"', response.text, re.IGNORECASE)

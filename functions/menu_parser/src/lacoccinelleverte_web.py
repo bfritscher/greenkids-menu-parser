@@ -11,7 +11,7 @@ from appwrite.id import ID
 import traceback
 
 def extract_text():
-    response = requests.get("https://lacoccinelleverte.net/nos-menus/")
+    response = requests.get("https://lacoccinelleverte.ch/nos-menus/")
     soup = BeautifulSoup(response.text, "html.parser")
     entry_content = soup.select_one(".entry-content")
 
